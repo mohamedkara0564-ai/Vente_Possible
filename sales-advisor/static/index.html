@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Advisor — Analyse par pays</title>
+  <!-- Feuille de style principale -->
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+
+    <!-- En-tête de l'application -->
+    <header>
+      <h1>Vente Possible</h1>
+      <p class="subtitle">Analysez la viabilité de votre type de vente selon le pays cible</p>
+    </header>
+
+    <main>
+      <!-- Formulaire principal : 2 champs + bouton -->
+      <form id="analysisForm" autocomplete="off">
+
+        <!-- Champ 1 : Pays — saisie libre avec autocomplétion -->
+        <div class="form-group">
+          <label for="countryInput">Pays cible</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🌍</span>
+            <input
+              type="text"
+              id="countryInput"
+              placeholder="Saisir ou sélectionner un pays..."
+              required
+            />
+          </div>
+          <!-- Liste déroulante d'autocomplétion (peuplée dynamiquement par app.js) -->
+          <ul id="countryDropdown" class="dropdown" role="listbox" aria-label="Suggestions de pays"></ul>
+        </div>
+
+        <!-- Champ 2 : Type de vente — saisie libre -->
+        <div class="form-group">
+          <label for="saleTypeInput">Type de vente</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🛒</span>
+            <input
+              type="text"
+              id="saleTypeInput"
+              placeholder="Ex: vente directe, e-commerce, B2B, franchise..."
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Bouton de soumission avec spinner de chargement -->
+        <button type="submit" id="submitBtn">
+          <span id="btnText">Analyser</span>
+          <!-- Spinner visible uniquement pendant le chargement (classe "hidden" retirée par JS) -->
+          <span id="btnLoader" class="loader hidden"></span>
+        </button>
+      </form>
+
+      <!-- Zone d'affichage des erreurs (cachée par défaut) -->
+      <div id="errorBox" class="error-box hidden"></div>
+
+      <!-- Section résultats — cachée jusqu'à réception de la réponse de l'API -->
+      <section id="resultSection" class="result-section hidden">
+
+        <!-- Carte d'informations sur le pays -->
+        <div class="country-card">
+          <div class="country-header">
+            <span id="countryFlag" class="flag"></span> <!-- Emoji drapeau -->
+            <div>
+              <h2 id="countryName"></h2>           <!-- Nom courant -->
+              <p id="countryOfficial" class="official-name"></p> <!-- Nom officiel -->
+            </div>
+          </div>
+          <!-- Grille de métadonnées du pays -->
+          <div class="country-meta">
+            <div class="meta-item"><span class="meta-label">Région</span><span id="metaRegion"></span></div>
+            <div class="meta-item"><span class="meta-label">Capitale</span><span id="metaCapital"></span></div>
+            <div class="meta-item"><span class="meta-label">Population</span><span id="metaPopulation"></span></div>
+            <div class="meta-item"><span class="meta-label">Langues</span><span id="metaLanguages"></span></div>
+            <div class="meta-item"><span class="meta-label">Monnaie</span><span id="metaCurrencies"></span></div>
+          </div>
+        </div>
+
+        <!-- Carte des taux de succès et d'échec (cercles SVG animés) -->
+        <div class="rates-card">
+          <h3>Taux de succès / échec — <span id="saleTypeLabel"></span></h3>
+          <div class="rates-row">
+
+            <!-- Cercle SVG : taux de succès (vert) -->
+            <div class="rate success-rate">
+              <div class="rate-circle" id="successCircle">
+                <svg viewBox="0 0 120 120">
+                  <circle class="bg" cx="60" cy="60" r="50"/>           <!-- Fond gris -->
+                  <circle class="progress success-progress" id="successArc" cx="60" cy="60" r="50"/> <!-- Arc animé -->
+                </svg>
+                <span id="successValue" class="rate-value">0%</span>   <!-- Valeur au centre -->
+              </div>
+              <p>Taux de succès</p>
+            </div>
+
+            <!-- Cercle SVG : taux d'échec (rouge) -->
+            <div class="rate failure-rate">
+              <div class="rate-circle" id="failureCircle">
+                <svg viewBox="0 0 120 120">
+                  <circle class="bg" cx="60" cy="60" r="50"/>
+                  <circle class="progress failure-progress" id="failureArc" cx="60" cy="60" r="50"/>
+                </svg>
+                <span id="failureValue" class="rate-value">0%</span>
+              </div>
+              <p>Taux d'échec</p>
+            </div>
+          </div>
+
+          <!-- Badge favorable / défavorable (coloré dynamiquement par JS) -->
+          <div id="favorableBadge" class="favorable-badge"></div>
+        </div>
+
+        <!-- Analyse textuelle générée par l'IA -->
+        <div class="analysis-card">
+          <h3>Analyse</h3>
+          <p id="analysisText"></p>
+        </div>
+
+        <!-- Opportunités et risques côte à côte -->
+        <div class="lists-row">
+          <div class="list-card opportunities">
+            <h3>✅ Opportunités</h3>
+            <ul id="opportunitiesList"></ul>
+          </div>
+          <div class="list-card risks">
+            <h3>⚠️ Risques</h3>
+            <ul id="risksList"></ul>
+          </div>
+        </div>
+
+        <!-- Facteurs clés sous forme de tags -->
+        <div class="list-card factors">
+          <h3>🔑 Facteurs clés</h3>
+          <ul id="factorsList" class="factors-list"></ul>
+        </div>
+
+        <!-- Recommandation finale de l'IA -->
+        <div class="recommendation-card">
+          <h3>💡 Recommandation</h3>
+          <p id="recommendationText"></p>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Script principal de l'interface -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
