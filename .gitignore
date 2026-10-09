@@ -1,0 +1,20 @@
+# Variables d'environnement — ne jamais committer la clé API
+.env
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environnements virtuels
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
