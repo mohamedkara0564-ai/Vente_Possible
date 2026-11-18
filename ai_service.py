@@ -9,6 +9,7 @@ import json
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
@@ -16,6 +17,21 @@ load_dotenv()
 # Initialiser le client Gemini avec la clé API
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+class SalesAnalysis(BaseModel):
+    success_rate: int = Field(ge=0, le=100)
+    failure_rate: int = Field(ge=0, le=100)
+    favorable: bool
+    analysis: str = Field(min_length=1)
+    key_factors: list[str] = Field(min_length=1)
+    recommendation: str = Field(min_length=1)
+    risks: list[str] = Field(min_length=1)
+    opportunities: list[str] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def rates_must_sum_to_100(self):
+        if self.success_rate + self.failure_rate != 100:
+            raise ValueError("Les taux doivent totaliser 100.")
+        return self
 
 async def analyze_sales_type(
     user_prompt: str,
@@ -112,5 +128,13 @@ Important: success_rate + failure_rate doit être égal à 100."""
         raise last_error
 
     # Parser la réponse JSON de Gemini et la retourner comme dictionnaire Python
-    result = json.loads(response.text)
-    return result
+    try:
+        if not response.text:
+            raise ValueError("Réponse vide.")
+
+        result = SalesAnalysis.model_validate_json(response.text)
+        return result.model_dump()
+    except (ValidationError, ValueError, TypeError) as exc:
+        raise ValueError(
+        "La réponse générée par l’IA ne respecte pas le format attendu."
+    ) from exc

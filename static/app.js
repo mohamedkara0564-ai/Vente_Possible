@@ -52,20 +52,29 @@ async function fetchCountries(q) {
 
 // Affiche les suggestions dans la liste déroulante
 function renderDropdown(countries) {
-  dropdown.innerHTML = '';
+  dropdown.replaceChildren();
 
-  if (!countries.length) { hideDropdown(); return; }
+  if (!countries.length) {
+    hideDropdown();
+    return;
+  }
 
-  countries.forEach(c => {
+  countries.forEach((country) => {
     const li = document.createElement('li');
     li.setAttribute('role', 'option');
-    li.innerHTML = `<span>${c.flag}</span><span>${c.name}</span>`;
 
-    // Au clic sur une suggestion : remplir le champ et fermer le dropdown
-    li.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // Empêche le blur du champ avant la sélection
-      countryInput.value = c.name;
-      selectedCountry = c.name;
+    const flag = document.createElement('span');
+    flag.textContent = country.flag || '';
+
+    const name = document.createElement('span');
+    name.textContent = country.name || '';
+
+    li.append(flag, name);
+
+    li.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      countryInput.value = country.name || '';
+      selectedCountry = country.name || '';
       hideDropdown();
     });
 
@@ -195,7 +204,13 @@ function renderResult(data) {
 // Génère les éléments <li> d'une liste à partir d'un tableau de chaînes
 function renderList(id, items) {
   const ul = document.getElementById(id);
-  ul.innerHTML = items.map(i => `<li>${i}</li>`).join('');
+  ul.replaceChildren();
+
+  items.forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = String(item);
+    ul.appendChild(li);
+  });
 }
 
 // ============================================================
