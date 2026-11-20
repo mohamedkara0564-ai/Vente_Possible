@@ -1,6 +1,6 @@
-// ============================================================
-// app.js — Logique frontend du microservice Sales Advisor
-// Rôle : Autocomplétion des pays, soumission du formulaire,
+﻿// ============================================================
+// app.js €” Logique frontend du microservice Sales Advisor
+// RÃ´le : Autocomplétion des pays, soumission du formulaire,
 //        affichage et animation des résultats
 // ============================================================
 
@@ -14,9 +14,6 @@ const btnText       = document.getElementById('btnText');         // Texte du bo
 const btnLoader     = document.getElementById('btnLoader');       // Spinner du bouton
 const errorBox      = document.getElementById('errorBox');        // Zone d'erreur
 const resultSection = document.getElementById('resultSection');   // Section résultats
-const pdfDownloadBtn = document.getElementById('downloadPdfBtn'); // Bouton PDF
-const pdfButtonLabel = document.getElementById('pdfButtonLabel');
-const pdfStatus = document.getElementById('pdfStatus');
 let currentAnalysisData = null;
 
 // Timer pour le debounce de l'autocomplétion
@@ -27,13 +24,13 @@ let activeCountryIndex = -1;
 
 
 // ============================================================
-// AUTOCOMPLÉTION DES PAYS
+// AUTOCOMPLÃ‰TION DES PAYS
 // ============================================================
 
-// Écoute chaque frappe dans le champ pays
+// Ã‰coute chaque frappe dans le champ pays
 countryInput.addEventListener('input', () => {
   const q = countryInput.value.trim();
-  selectedCountry = ''; // Réinitialiser la sélection à chaque nouvelle frappe
+  selectedCountry = ''; // Réinitialiser la sélection Ã  chaque nouvelle frappe
   countryInput.removeAttribute('aria-activedescendant');
 
   clearTimeout(debounceTimer);
@@ -45,7 +42,7 @@ countryInput.addEventListener('input', () => {
   debounceTimer = setTimeout(() => fetchCountries(q), 300);
 });
 
-// Appel à l'API backend pour récupérer les suggestions de pays
+// Appel Ã  l'API backend pour récupérer les suggestions de pays
 async function fetchCountries(q) {
   try {
     const res = await fetch(`/api/countries/search?q=${encodeURIComponent(q)}`);
@@ -158,17 +155,17 @@ countryInput.addEventListener('blur', () => {
 // ============================================================
 
 form.addEventListener('submit', async (e) => {
-  e.preventDefault(); // Empêcher le rechargement de la page
+  e.preventDefault(); // EmpÃªcher le rechargement de la page
   hideError();
 
   // Récupérer les valeurs des champs
   const country  = selectedCountry || countryInput.value.trim();
   const saleType = saleTypeInput.value.trim();
 
-  // Générer automatiquement le prompt envoyé à l'IA
+  // Générer automatiquement le prompt envoyé Ã  l'IA
   const prompt = `Analyse le type de vente "${saleType}" pour le pays suivant.`;
 
-  // Validation côté client
+  // Validation cÃ´té client
   if (!country || !saleType) {
     showError('Veuillez remplir tous les champs.');
     return;
@@ -179,7 +176,7 @@ form.addEventListener('submit', async (e) => {
   resultSection.classList.add('hidden');
 
   try {
-    // Appel à l'API backend
+    // Appel Ã  l'API backend
     const res = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -206,14 +203,14 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
-// Télécharge le rapport correspondant à la dernière analyse affichée.
+// Télécharge le rapport correspondant Ã  la dernière analyse affichée.
 pdfDownloadBtn?.addEventListener('click', async () => {
   if (!currentAnalysisData) return;
 
   pdfDownloadBtn.disabled = true;
   pdfDownloadBtn.setAttribute('aria-busy', 'true');
-  pdfButtonLabel.textContent = 'Préparation du PDF…';
-  pdfStatus.textContent = 'Génération du rapport en cours…';
+  pdfButtonLabel.textContent = 'Préparation du PDF€¦';
+  pdfStatus.textContent = 'Génération du rapport en cours€¦';
   pdfStatus.classList.remove('error', 'success');
 
   try {
@@ -235,7 +232,7 @@ pdfDownloadBtn?.addEventListener('click', async () => {
     }
 
     if (!res.headers.get('content-type')?.includes('application/pdf')) {
-      throw new Error('Le serveur n’a pas renvoyé un fichier PDF valide.');
+      throw new Error('Le serveur n€™a pas renvoyé un fichier PDF valide.');
     }
 
     const blob = await res.blob();
@@ -253,7 +250,7 @@ pdfDownloadBtn?.addEventListener('click', async () => {
     pdfStatus.textContent = 'Le téléchargement du rapport a démarré.';
     pdfStatus.classList.add('success');
   } catch (err) {
-    pdfStatus.textContent = `Échec du téléchargement : ${err.message}`;
+    pdfStatus.textContent = `Ã‰chec du téléchargement : ${err.message}`;
     pdfStatus.classList.add('error');
   } finally {
     pdfDownloadBtn.disabled = false;
@@ -264,17 +261,17 @@ pdfDownloadBtn?.addEventListener('click', async () => {
 
 
 // ============================================================
-// AFFICHAGE DES RÉSULTATS
+// AFFICHAGE DES RÃ‰SULTATS
 // ============================================================
 
 function renderResult(data) {
   const { country, sale_type, analysis } = data;
 
   // --- Informations sur le pays ---
-  document.getElementById('countryFlag').textContent     = country.flag || '🌐';
+  document.getElementById('countryFlag').textContent     = country.flag || 'ðŸŒ';
   document.getElementById('countryName').textContent     = country.name;
   document.getElementById('countryOfficial').textContent = country.official;
-  document.getElementById('metaRegion').textContent      = `${country.region} — ${country.subregion}`;
+  document.getElementById('metaRegion').textContent      = `${country.region} €” ${country.subregion}`;
   document.getElementById('metaCapital').textContent     = country.capital;
   // Formatage de la population avec séparateur de milliers français
   document.getElementById('metaPopulation').textContent  = country.population.toLocaleString('fr-FR');
@@ -307,12 +304,12 @@ function renderResult(data) {
   renderList('risksList', analysis.risks || []);
   renderList('factorsList', analysis.key_factors || []);
 
-  // Afficher la section et scroller jusqu'à elle
+  // Afficher la section et scroller jusqu'Ã  elle
   resultSection.classList.remove('hidden');
   resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Génère les éléments <li> d'une liste à partir d'un tableau de chaînes
+// Génère les éléments <li> d'une liste Ã  partir d'un tableau de chaÃ®nes
 function renderList(id, items) {
   const ul = document.getElementById(id);
   ul.replaceChildren();
@@ -328,16 +325,16 @@ function renderList(id, items) {
 // ANIMATION DES CERCLES SVG
 // Principe : on manipule strokeDashoffset pour "dessiner"
 // progressivement l'arc en fonction du pourcentage
-// Circonférence = 2 × π × rayon = 2 × π × 50 ≈ 314.16
+// Circonférence = 2 Ã— Ï€ Ã— rayon = 2 Ã— Ï€ Ã— 50 ‰ˆ 314.16
 // ============================================================
 function animateCircle(arcId, percent) {
   const circ = 2 * Math.PI * 50; // Circonférence totale du cercle (r=50)
   const arc = document.getElementById(arcId);
 
   arc.style.strokeDasharray  = circ;  // Longueur totale du trait
-  arc.style.strokeDashoffset = circ;  // Départ à 0% (arc invisible)
+  arc.style.strokeDashoffset = circ;  // Départ Ã  0% (arc invisible)
 
-  // Double requestAnimationFrame pour forcer le navigateur à appliquer
+  // Double requestAnimationFrame pour forcer le navigateur Ã  appliquer
   // l'état initial avant de lancer la transition CSS
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -361,9 +358,14 @@ function setLoading(state) {
 
 // Affiche un message d'erreur dans la zone dédiée
 function showError(msg) {
-  errorBox.textContent = `⚠️ ${msg}`;
+  errorBox.textContent = `š ï¸ ${msg}`;
   errorBox.classList.remove('hidden');
 }
 
 // Cache la zone d'erreur
 function hideError() { errorBox.classList.add('hidden'); }
+
+
+
+
+

@@ -320,3 +320,333 @@ INFO:     127.0.0.1:59027 - "POST /api/analyze HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51565 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51565 - "GET /static/style.css?v=pdf-button-3 HTTP/1.1" 304 Not Modified
 INFO:     127.0.0.1:53254 - "GET /static/app.js?v=pdf-button-3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:60858 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60858 - "GET /static/style.css?v=pdf-button-3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59760 - "GET /static/app.js?v=pdf-button-3 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:49638 - "GET /api/countries/search?q=ivor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49505 - "GET /api/countries/search?q=ivo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65285 - "GET /api/countries/search?q=ivory HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50573 - "POST /api/analyze HTTP/1.1" 200 OK
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    pdf_content = generate_sales_pdf(data)
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 93, in generate_sales_pdf
+    fontSize=10,
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 5366, in multi_cell
+    text_line = multi_line_break.get_line()
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\line_break.py", line 978, in get_line
+    raise FPDFException(
+        "Not enough horizontal space to render a single character"
+    )
+fpdf.errors.FPDFException: Not enough horizontal space to render a single character
+INFO:     127.0.0.1:50573 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:62907 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62907 - "GET /api/countries/search?q=mai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62907 - "GET /api/countries/search?q=ivo HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62306 - "POST /api/analyze HTTP/1.1" 200 OK
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 93, in generate_sales_pdf
+    fontSize=10,
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 5366, in multi_cell
+    text_line = multi_line_break.get_line()
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\line_break.py", line 978, in get_line
+    raise FPDFException(
+        "Not enough horizontal space to render a single character"
+    )
+fpdf.errors.FPDFException: Not enough horizontal space to render a single character
+INFO:     127.0.0.1:62306 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 6282, in normalize_text
+    return text.encode(self.core_fonts_encoding).decode("latin-1")
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'latin-1' codec can't encode character '\u2014' in position 12: ordinal not in range(256)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 111, in generate_sales_pdf
+    styles["recommendation"] = ParagraphStyle(
+           ^^^^^^^^^^^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 59, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 7112, in output
+    self._render_footer()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 1339, in _render_footer
+    self.footer()
+    ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 20, in footer
+    COLOR_DANGER     = colors.HexColor("#dc2626")   # Rouge échec
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 4098, in cell
+    text = self.normalize_text(text)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 6286, in normalize_text
+    raise FPDFUnicodeEncodingException(
+    ...<4 lines>...
+    ) from error
+fpdf.errors.FPDFUnicodeEncodingException: Character "—" at index 12 in text is outside the range of characters supported by the font used: "helveticaI". Please consider using a Unicode font.
+INFO:     127.0.0.1:52173 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:64555 - "GET /api/countries/search?q=Fra HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53320 - "POST /api/analyze HTTP/1.1" 200 OK
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 93, in generate_sales_pdf
+    fontSize=10,
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 5366, in multi_cell
+    text_line = multi_line_break.get_line()
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\line_break.py", line 978, in get_line
+    raise FPDFException(
+        "Not enough horizontal space to render a single character"
+    )
+fpdf.errors.FPDFException: Not enough horizontal space to render a single character
+INFO:     127.0.0.1:57495 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 6282, in normalize_text
+    return text.encode(self.core_fonts_encoding).decode("latin-1")
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'latin-1' codec can't encode character '\u2014' in position 12: ordinal not in range(256)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 111, in generate_sales_pdf
+    styles["recommendation"] = ParagraphStyle(
+           ^^^^^^^^^^^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 59, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 7112, in output
+    self._render_footer()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 1339, in _render_footer
+    self.footer()
+    ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 20, in footer
+    COLOR_DANGER     = colors.HexColor("#dc2626")   # Rouge échec
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 4098, in cell
+    text = self.normalize_text(text)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 6286, in normalize_text
+    raise FPDFUnicodeEncodingException(
+    ...<4 lines>...
+    ) from error
+fpdf.errors.FPDFUnicodeEncodingException: Character "—" at index 12 in text is outside the range of characters supported by the font used: "helveticaI". Please consider using a Unicode font.
+INFO:     127.0.0.1:61041 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 41, in generate_sales_pdf
+    )
+    
+KeyError: 'official'
+INFO:     127.0.0.1:63562 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:50401 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65352 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65352 - "GET /api/countries/search?q=fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65352 - "GET /api/countries/search?q=fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65352 - "GET /api/countries/search?q=far HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65352 - "GET /api/countries/search?q=farn HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65352 - "GET /api/countries/search?q=fa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65352 - "GET /api/countries/search?q=fra HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64452 - "POST /api/analyze HTTP/1.1" 200 OK
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 93, in generate_sales_pdf
+    fontSize=10,
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 5366, in multi_cell
+    text_line = multi_line_break.get_line()
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\line_break.py", line 978, in get_line
+    raise FPDFException(
+        "Not enough horizontal space to render a single character"
+    )
+fpdf.errors.FPDFException: Not enough horizontal space to render a single character
+INFO:     127.0.0.1:64452 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 41, in generate_sales_pdf
+    )
+    
+KeyError: 'official'
+INFO:     127.0.0.1:54789 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:54270 - "GET /api/countries/search?q=bur HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57029 - "POST /api/analyze HTTP/1.1" 200 OK
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 93, in generate_sales_pdf
+    fontSize=10,
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 5366, in multi_cell
+    text_line = multi_line_break.get_line()
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\line_break.py", line 978, in get_line
+    raise FPDFException(
+        "Not enough horizontal space to render a single character"
+    )
+fpdf.errors.FPDFException: Not enough horizontal space to render a single character
+INFO:     127.0.0.1:59451 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56698 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63852 - "GET /api/countries/search?q=faso HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49500 - "POST /api/analyze HTTP/1.1" 200 OK
+Échec de génération du PDF
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 350, in download_pdf
+    data = await request.json()
+                  ~~~~~~~~~~~^^
+  File "C:\Users\simplon\Desktop\sales-advisor\pdf_service.py", line 93, in generate_sales_pdf
+    fontSize=10,
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 300, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\deprecation.py", line 36, in wrapper
+    return fn(*args, **kwargs)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\fpdf.py", line 5366, in multi_cell
+    text_line = multi_line_break.get_line()
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\fpdf\line_break.py", line 978, in get_line
+    raise FPDFException(
+        "Not enough horizontal space to render a single character"
+    )
+fpdf.errors.FPDFException: Not enough horizontal space to render a single character
+INFO:     127.0.0.1:52893 - "POST /api/download-pdf HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:57265 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49366 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49366 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59635 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59635 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59635 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59635 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50737 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50737 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54045 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61709 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61709 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61709 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61709 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61709 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58319 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58319 - "GET /static/app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58319 - "GET /api/countries/search?q=fu HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58319 - "GET /api/countries/search?q=bur HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52064 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63904 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60778 - "GET /api/countries/search?q=bu HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57105 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51829 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51829 - "GET /static/app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53369 - "GET /api/countries/search?q=ja HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65356 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58759 - "GET /api/countries/search?q=ja HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58759 - "GET /api/countries/search?q=jap HTTP/1.1" 200 OK
+Échec du service d'analyse IA
+Traceback (most recent call last):
+  File "C:\Users\simplon\Desktop\sales-advisor\main.py", line 306, in analyze_sales
+            user_prompt=request.user_prompt,
+                    ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    except Exception:
+    ^^^^^
+  File "C:\Users\simplon\Desktop\sales-advisor\ai_service.py", line 134, in analyze_sales_type
+    raise last_error
+  File "C:\Users\simplon\Desktop\sales-advisor\ai_service.py", line 116, in analyze_sales_type
+    response = await asyncio.wait_for(
+               ^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "C:\Users\simplon\AppData\Local\Programs\Python\Python313\Lib\asyncio\tasks.py", line 507, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\google\genai\models.py", line 6519, in generate_content
+    response = await self._generate_content(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        model=model, contents=contents, config=config
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\google\genai\models.py", line 5521, in _generate_content
+    response_dict = await self._api_client.async_request(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'post', path, request_dict, http_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\google\genai\_api_client.py", line 785, in async_request
+    result = await self._async_request(http_request=http_request, stream=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\google\genai\_api_client.py", line 729, in _async_request
+    await errors.APIError.raise_for_async_response(response)
+  File "C:\Users\simplon\Desktop\sales-advisor\.venv\Lib\site-packages\google\genai\errors.py", line 131, in raise_for_async_response
+    raise ServerError(status_code, response_json, response)
+google.genai.errors.ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}
+INFO:     127.0.0.1:61059 - "POST /api/analyze HTTP/1.1" 503 Service Unavailable
+INFO:     127.0.0.1:49655 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49655 - "GET /static/app.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:49655 - "GET /api/countries/search?q=fr HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49655 - "GET /api/countries/search?q=fra HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62418 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58470 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58470 - "GET /static/app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58470 - "GET /api/countries/search?q=jao HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58470 - "GET /api/countries/search?q=jap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60952 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54600 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54600 - "GET /static/app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52876 - "GET /api/countries/search?q=pha HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53471 - "GET /api/countries/search?q=pi HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62054 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49266 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49266 - "GET /static/app.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55532 - "GET /api/countries/search?q=ja HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55532 - "GET /api/countries/search?q=jap HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64971 - "POST /api/analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65260 - "POST /api/analyze HTTP/1.1" 200 OK

@@ -1,7 +1,7 @@
-# ============================================================
-# main.py — Point d'entrée du microservice Sales Advisor
+﻿# ============================================================
+# main.py â€” Point d'entrÃ©e du microservice Sales Advisor
 # Framework : FastAPI
-# Rôle : Exposer les routes REST, récupérer les données pays
+# RÃ´le : Exposer les routes REST, rÃ©cupÃ©rer les donnÃ©es pays
 #         via CountriesNow + World Bank API, puis appeler le service IA
 # ============================================================
 
@@ -9,22 +9,21 @@ import asyncio
 import logging
 import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 import httpx
 from ai_service import analyze_sales_type
-from pdf_service import generate_sales_pdf
 
-# Création de l'application FastAPI avec métadonnées
+# CrÃ©ation de l'application FastAPI avec mÃ©tadonnÃ©es
 app = FastAPI(title="Sales Type Advisor", version="1.0.0")
 logger = logging.getLogger(__name__)
 
 # Montage du dossier "static" pour servir les fichiers HTML, CSS, JS
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# URLs des APIs utilisées
+# URLs des APIs utilisÃ©es
 COUNTRIESNOW_URL = "https://countriesnow.space/api/v0.1"
 WORLDBANK_URL    = "https://api.worldbank.org/v2"
 CACHE_TTL_SECONDS = 60 * 60
@@ -40,13 +39,13 @@ async def fetch_json_cached(
     params: dict | None = None,
     timeout: float = 8.0,
 ) -> dict | list:
-    """Récupère une réponse JSON et la garde en mémoire pendant une heure."""
+    """RÃ©cupÃ¨re une rÃ©ponse JSON et la garde en mÃ©moire pendant une heure."""
     cached = _country_data_cache.get(cache_key)
     if cached and time.monotonic() - cached[0] < CACHE_TTL_SECONDS:
         return cached[1]
 
     async with _country_data_cache_lock:
-        # Une autre requête a peut-être rempli le cache pendant l'attente.
+        # Une autre requÃªte a peut-Ãªtre rempli le cache pendant l'attente.
         cached = _country_data_cache.get(cache_key)
         if cached and time.monotonic() - cached[0] < CACHE_TTL_SECONDS:
             return cached[1]
@@ -58,7 +57,7 @@ async def fetch_json_cached(
         return data
 
 
-# Modèle de données attendu dans le corps de la requête POST /api/analyze
+# ModÃ¨le de donnÃ©es attendu dans le corps de la requÃªte POST /api/analyze
 class SalesRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -68,18 +67,18 @@ class SalesRequest(BaseModel):
 
 
 # ---------------------------------------------------------------
-# Fonction utilitaire : récupérer les données d'un pays
+# Fonction utilitaire : rÃ©cupÃ©rer les donnÃ©es d'un pays
 # Combine CountriesNow (drapeau, capitale, devise) et
-# World Bank (région, niveau de revenu, population)
+# World Bank (rÃ©gion, niveau de revenu, population)
 # ---------------------------------------------------------------
 async def fetch_country_info(country_id: str) -> dict:
     """
-    Récupère les informations d'un pays depuis CountriesNow et World Bank.
+    RÃ©cupÃ¨re les informations d'un pays depuis CountriesNow et World Bank.
     Supporte le nom du pays ou le code ISO2.
     """
     async with httpx.AsyncClient(follow_redirects=True) as client:
 
-        # --- Étape 1 : CountriesNow — infos de base ---
+        # --- Ã‰tape 1 : CountriesNow â€” infos de base ---
         cn_data_raw = await fetch_json_cached(
             client,
             "countriesnow_info_detail",
@@ -109,11 +108,11 @@ async def fetch_country_info(country_id: str) -> dict:
         official_name = cn_country["name"]
         iso2 = cn_country.get("iso2", "")
 
-        # --- Étape 2 : World Bank — données macro-économiques ---
+        # --- Ã‰tape 2 : World Bank â€” donnÃ©es macro-Ã©conomiques ---
         # On utilise le code ISO2 pour la Banque Mondiale (plus fiable)
         wb_id = iso2 if iso2 else official_name
 
-        # Données de base pays
+        # DonnÃ©es de base pays
         wb_countries_raw = await fetch_json_cached(
             client,
             "worldbank_countries",
@@ -129,13 +128,13 @@ async def fetch_country_info(country_id: str) -> dict:
             {}
         )
 
-        # Indicateurs : PIB par habitant et Pénétration Internet
+        # Indicateurs : PIB par habitant et PÃ©nÃ©tration Internet
         gdp_pc = "N/A"
         internet_users = "N/A"
 
         if iso2:
             try:
-                # PIB par habitant (dernier point de données)
+                # PIB par habitant (dernier point de donnÃ©es)
                 gdp_raw = await fetch_json_cached(
                     client,
                     f"wb_gdp_{iso2}",
@@ -149,7 +148,7 @@ async def fetch_country_info(country_id: str) -> dict:
                             gdp_pc = val["value"]
                             break
 
-                # Pénétration Internet
+                # PÃ©nÃ©tration Internet
                 net_raw = await fetch_json_cached(
                     client,
                     f"wb_net_{iso2}",
@@ -165,7 +164,7 @@ async def fetch_country_info(country_id: str) -> dict:
             except Exception:
                 pass
 
-        # --- Étape 3 : Population ---
+        # --- Ã‰tape 3 : Population ---
         population = 0
         try:
             pop_raw = await fetch_json_cached(
@@ -213,7 +212,7 @@ async def fetch_country_info(country_id: str) -> dict:
 
 
 # ---------------------------------------------------------------
-# Route GET / — Sert la page principale de l'interface utilisateur
+# Route GET / â€” Sert la page principale de l'interface utilisateur
 # ---------------------------------------------------------------
 @app.get("/")
 async def root():
@@ -221,9 +220,9 @@ async def root():
 
 
 # ---------------------------------------------------------------
-# Route GET /api/countries/search — Autocomplétion des pays
-# Appelée en temps réel pendant la saisie (dès 2 caractères)
-# Interroge CountriesNow et retourne jusqu'à 10 suggestions
+# Route GET /api/countries/search â€” AutocomplÃ©tion des pays
+# AppelÃ©e en temps rÃ©el pendant la saisie (dÃ¨s 2 caractÃ¨res)
+# Interroge CountriesNow et retourne jusqu'Ã  10 suggestions
 # ---------------------------------------------------------------
 @app.get("/api/countries/search")
 async def search_countries(q: str):
@@ -242,14 +241,14 @@ async def search_countries(q: str):
             )
             countries = payload.get("data", [])
 
-            # Filtrer les pays dont le nom contient la saisie (insensible à la casse)
+            # Filtrer les pays dont le nom contient la saisie (insensible Ã  la casse)
             query = q.lower()
             matches = [
                 c for c in countries
                 if query in c.get("name", "").lower()
             ]
 
-            # Formater et retourner les 10 premiers résultats
+            # Formater et retourner les 10 premiers rÃ©sultats
             return [
                 {
                     "name":     m["name"],
@@ -265,9 +264,9 @@ async def search_countries(q: str):
 
 
 # ---------------------------------------------------------------
-# Route POST /api/analyze — Analyse principale
-# Reçoit le pays et le type de vente, récupère les données du pays,
-# appelle l'IA et retourne l'analyse complète
+# Route POST /api/analyze â€” Analyse principale
+# ReÃ§oit le pays et le type de vente, rÃ©cupÃ¨re les donnÃ©es du pays,
+# appelle l'IA et retourne l'analyse complÃ¨te
 # ---------------------------------------------------------------
 class SalesRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -287,21 +286,21 @@ async def analyze_sales(request: SalesRequest):
     if not request.sale_type.strip():
         raise HTTPException(status_code=400, detail="Le type de vente est requis.")
 
-    # --- Étape 1 : Récupérer les informations détaillées du pays ---
+    # --- Ã‰tape 1 : RÃ©cupÃ©rer les informations dÃ©taillÃ©es du pays ---
     try:
-        # On essaie d'utiliser l'ISO2 si fourni pour plus de précision
+        # On essaie d'utiliser l'ISO2 si fourni pour plus de prÃ©cision
         lookup_name = request.country_iso2 if request.country_iso2 else request.country_name
         country_info = await fetch_country_info(lookup_name)
     except HTTPException:
         raise
     except Exception:
-        logger.exception("Échec de récupération des données pays")
+        logger.exception("Ã‰chec de rÃ©cupÃ©ration des donnÃ©es pays")
         raise HTTPException(
             status_code=503,
-            detail="Le service de données pays est temporairement indisponible."
+            detail="Le service de donnÃ©es pays est temporairement indisponible."
         )
 
-    # --- Étape 2 : Appeler le service IA pour l'analyse ---
+    # --- Ã‰tape 2 : Appeler le service IA pour l'analyse ---
     try:
         ai_result = await analyze_sales_type(
             user_prompt=request.user_prompt,
@@ -310,13 +309,13 @@ async def analyze_sales(request: SalesRequest):
             sale_type=request.sale_type
         )
     except Exception:
-        logger.exception("Échec du service d'analyse IA")
+        logger.exception("Ã‰chec du service d'analyse IA")
         raise HTTPException(
             status_code=503,
             detail="Le service d'analyse est temporairement indisponible."
         )
 
-    # --- Étape 3 : Construire et retourner la réponse finale ---
+    # --- Ã‰tape 3 : Construire et retourner la rÃ©ponse finale ---
     return {
         "country": {
             "name":       country_info["name"]["common"],
@@ -341,26 +340,34 @@ async def analyze_sales(request: SalesRequest):
 
 
 # ---------------------------------------------------------------
-# Route POST /api/download-pdf — Génération de PDF
-# Reçoit les données d'analyse et retourne le fichier PDF
+# Route POST /api/download-pdf â€” GÃ©nÃ©ration de PDF
+# ReÃ§oit les donnÃ©es d'analyse et retourne le fichier PDF
 # ---------------------------------------------------------------
 @app.post("/api/download-pdf")
-async def download_pdf(data: dict):
+async def download_pdf(request: Request):
     try:
+        data = await request.json()
         pdf_content = generate_sales_pdf(data)
+        country_name = data.get("country", {}).get("name", "rapport")
+        safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in country_name)
         return Response(
             content=pdf_content,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename=analyse_{data['country']['name']}.pdf"
+                "Content-Disposition": f"attachment; filename=analyse_{safe_name}.pdf"
             }
         )
     except Exception as e:
-        logger.exception("Échec de génération du PDF")
-        raise HTTPException(status_code=500, detail="Erreur lors de la génération du PDF.")
+        import traceback
+        err_detail = traceback.format_exc()
+        logger.error("Ã‰chec de gÃ©nÃ©ration du PDF:\n%s", err_detail)
+        raise HTTPException(status_code=500, detail=f"Erreur PDF : {str(e)}")
 
 
-# Point d'entrée pour lancer le serveur directement avec python main.py
+# Point d'entrÃ©e pour lancer le serveur directement avec python main.py
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+
+
