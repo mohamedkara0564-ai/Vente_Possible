@@ -14,11 +14,16 @@ const btnText       = document.getElementById('btnText');         // Texte du bo
 const btnLoader     = document.getElementById('btnLoader');       // Spinner du bouton
 const errorBox      = document.getElementById('errorBox');        // Zone d'erreur
 const resultSection = document.getElementById('resultSection');   // Section résultats
+const pdfDownloadBtn = document.getElementById('downloadPdfBtn'); // Bouton PDF
+const pdfButtonLabel = document.getElementById('pdfButtonLabel');
+const pdfStatus = document.getElementById('pdfStatus');
+let currentAnalysisData = null;
 
 // Timer pour le debounce de l'autocomplétion
 let debounceTimer = null;
 // Mémorise le pays sélectionné via le dropdown (vs saisie libre)
 let selectedCountry = '';
+let activeCountryIndex = -1;
 
 
 // ============================================================
@@ -29,6 +34,7 @@ let selectedCountry = '';
 countryInput.addEventListener('input', () => {
   const q = countryInput.value.trim();
   selectedCountry = ''; // Réinitialiser la sélection à chaque nouvelle frappe
+  countryInput.removeAttribute('aria-activedescendant');
 
   clearTimeout(debounceTimer);
 
@@ -53,15 +59,19 @@ async function fetchCountries(q) {
 // Affiche les suggestions dans la liste déroulante
 function renderDropdown(countries) {
   dropdown.replaceChildren();
+  activeCountryIndex = -1;
 
   if (!countries.length) {
     hideDropdown();
     return;
   }
 
-  countries.forEach((country) => {
+  countries.forEach((country, index) => {
     const li = document.createElement('li');
+    li.id = `country-option-${index}`;
     li.setAttribute('role', 'option');
+    li.setAttribute('aria-selected', 'false');
+    li.dataset.countryName = country.name || '';
 
     const flag = document.createElement('span');
     flag.textContent = country.flag || '';
@@ -73,19 +83,63 @@ function renderDropdown(countries) {
 
     li.addEventListener('mousedown', (event) => {
       event.preventDefault();
-      countryInput.value = country.name || '';
-      selectedCountry = country.name || '';
-      hideDropdown();
+      selectCountry(country.name);
     });
 
     dropdown.appendChild(li);
   });
 
   dropdown.classList.remove('hidden');
+  countryInput.setAttribute('aria-expanded', 'true');
 }
 
 // Ferme le dropdown
-function hideDropdown() { dropdown.classList.add('hidden'); }
+function hideDropdown() {
+  dropdown.classList.add('hidden');
+  countryInput.setAttribute('aria-expanded', 'false');
+  countryInput.removeAttribute('aria-activedescendant');
+  activeCountryIndex = -1;
+}
+
+function selectCountry(name) {
+  countryInput.value = name || '';
+  selectedCountry = name || '';
+  hideDropdown();
+}
+
+function setActiveCountry(index) {
+  const options = dropdown.querySelectorAll('[role="option"]');
+  if (!options.length) return;
+
+  activeCountryIndex = (index + options.length) % options.length;
+  options.forEach((option, optionIndex) => {
+    const isActive = optionIndex === activeCountryIndex;
+    option.classList.toggle('active', isActive);
+    option.setAttribute('aria-selected', String(isActive));
+  });
+
+  const activeOption = options[activeCountryIndex];
+  countryInput.setAttribute('aria-activedescendant', activeOption.id);
+  activeOption.scrollIntoView({ block: 'nearest' });
+}
+
+countryInput.addEventListener('keydown', (event) => {
+  if (dropdown.classList.contains('hidden')) return;
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    setActiveCountry(activeCountryIndex + 1);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    setActiveCountry(activeCountryIndex - 1);
+  } else if (event.key === 'Enter' && activeCountryIndex >= 0) {
+    event.preventDefault();
+    const activeOption = dropdown.querySelectorAll('[role="option"]')[activeCountryIndex];
+    selectCountry(activeOption.dataset.countryName);
+  } else if (event.key === 'Escape') {
+    hideDropdown();
+  }
+});
 
 // Ferme le dropdown si on clique en dehors du champ pays
 document.addEventListener('click', (e) => {
@@ -143,11 +197,68 @@ form.addEventListener('submit', async (e) => {
 
     // Afficher les résultats
     renderResult(data);
+    currentAnalysisData = data;
 
   } catch (err) {
     showError(err.message);
   } finally {
     setLoading(false); // Toujours retirer le spinner
+  }
+});
+
+// Télécharge le rapport correspondant à la dernière analyse affichée.
+pdfDownloadBtn?.addEventListener('click', async () => {
+  if (!currentAnalysisData) return;
+
+  pdfDownloadBtn.disabled = true;
+  pdfDownloadBtn.setAttribute('aria-busy', 'true');
+  pdfButtonLabel.textContent = 'Préparation du PDF…';
+  pdfStatus.textContent = 'Génération du rapport en cours…';
+  pdfStatus.classList.remove('error', 'success');
+
+  try {
+    const res = await fetch('/api/download-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentAnalysisData)
+    });
+
+    if (!res.ok) {
+      let message = 'Erreur lors de la génération du PDF.';
+      try {
+        const errData = await res.json();
+        message = errData.detail || message;
+      } catch {
+        // Conserver le message générique si le serveur n'a pas répondu en JSON.
+      }
+      throw new Error(message);
+    }
+
+    if (!res.headers.get('content-type')?.includes('application/pdf')) {
+      throw new Error('Le serveur n’a pas renvoyé un fichier PDF valide.');
+    }
+
+    const blob = await res.blob();
+    if (!blob.size) throw new Error('Le fichier PDF reçu est vide.');
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const countryName = currentAnalysisData.country.name;
+    link.href = url;
+    link.download = `analyse_${countryName.replace(/[^\w-]/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    pdfStatus.textContent = 'Le téléchargement du rapport a démarré.';
+    pdfStatus.classList.add('success');
+  } catch (err) {
+    pdfStatus.textContent = `Échec du téléchargement : ${err.message}`;
+    pdfStatus.classList.add('error');
+  } finally {
+    pdfDownloadBtn.disabled = false;
+    pdfDownloadBtn.removeAttribute('aria-busy');
+    pdfButtonLabel.textContent = 'Télécharger le rapport';
   }
 });
 

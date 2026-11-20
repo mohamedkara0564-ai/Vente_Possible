@@ -4,6 +4,7 @@
 #         retourner une analyse structurée en JSON
 # ============================================================
 
+import asyncio
 import os
 import json
 from google import genai
@@ -67,6 +68,8 @@ Région: {country_info.get('region', 'N/A')}
 Sous-région: {country_info.get('subregion', 'N/A')}
 Population: {country_info.get('population', 0):,}
 Niveau de revenu: {country_info.get('income_level', 'N/A')}
+PIB par habitant: {country_info.get('gdp_pc', 'N/A')} USD
+Pénétration Internet: {country_info.get('internet_users', 'N/A')}%
 Capitale: {country_info.get('capital', ['N/A'])[0] if country_info.get('capital') else 'N/A'}
 Monnaies: {currencies}
 Langues: {languages}
@@ -110,13 +113,16 @@ Important: success_rate + failure_rate doit être égal à 100."""
 
     for model_name in models_fallback:
         try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.3,              # Faible température = réponses plus déterministes
-                    response_mime_type="application/json"  # Force Gemini à répondre en JSON pur
-                )
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.3,
+                        response_mime_type="application/json"
+                    )
+                ),
+                timeout=30
             )
             break  # Succès : on sort de la boucle de fallback
         except Exception as e:

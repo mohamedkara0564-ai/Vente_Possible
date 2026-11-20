@@ -5,15 +5,21 @@
 #         via CountriesNow + World Bank API, puis appeler le service IA
 # ============================================================
 
+import asyncio
+import logging
+import time
+
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel, ConfigDict, Field
 import httpx
 from ai_service import analyze_sales_type
+from pdf_service import generate_sales_pdf
 
 # Création de l'application FastAPI avec métadonnées
 app = FastAPI(title="Sales Type Advisor", version="1.0.0")
+logger = logging.getLogger(__name__)
 
 # Montage du dossier "static" pour servir les fichiers HTML, CSS, JS
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -21,13 +27,44 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # URLs des APIs utilisées
 COUNTRIESNOW_URL = "https://countriesnow.space/api/v0.1"
 WORLDBANK_URL    = "https://api.worldbank.org/v2"
+CACHE_TTL_SECONDS = 60 * 60
+_country_data_cache: dict[str, tuple[float, dict]] = {}
+_country_data_cache_lock = asyncio.Lock()
+
+
+async def fetch_json_cached(
+    client: httpx.AsyncClient,
+    cache_key: str,
+    url: str,
+    *,
+    params: dict | None = None,
+    timeout: float = 8.0,
+) -> dict | list:
+    """Récupère une réponse JSON et la garde en mémoire pendant une heure."""
+    cached = _country_data_cache.get(cache_key)
+    if cached and time.monotonic() - cached[0] < CACHE_TTL_SECONDS:
+        return cached[1]
+
+    async with _country_data_cache_lock:
+        # Une autre requête a peut-être rempli le cache pendant l'attente.
+        cached = _country_data_cache.get(cache_key)
+        if cached and time.monotonic() - cached[0] < CACHE_TTL_SECONDS:
+            return cached[1]
+
+        response = await client.get(url, params=params, timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
+        _country_data_cache[cache_key] = (time.monotonic(), data)
+        return data
 
 
 # Modèle de données attendu dans le corps de la requête POST /api/analyze
 class SalesRequest(BaseModel):
-    user_prompt: str = ""      # Contexte optionnel (généré automatiquement si vide)
-    country_name: str          # Nom du pays saisi par l'utilisateur
-    sale_type: str             # Type de vente saisi par l'utilisateur
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    user_prompt: str = Field(default="", max_length=1000)
+    country_name: str = Field(min_length=1, max_length=100)
+    sale_type: str = Field(min_length=1, max_length=200)
 
 
 # ---------------------------------------------------------------
@@ -35,115 +72,143 @@ class SalesRequest(BaseModel):
 # Combine CountriesNow (drapeau, capitale, devise) et
 # World Bank (région, niveau de revenu, population)
 # ---------------------------------------------------------------
-async def fetch_country_info(country_name: str) -> dict:
+async def fetch_country_info(country_id: str) -> dict:
     """
     Récupère les informations d'un pays depuis CountriesNow et World Bank.
-    Retourne un dictionnaire normalisé compatible avec ai_service.py.
-    Lève une HTTPException si le pays est introuvable.
+    Supporte le nom du pays ou le code ISO2.
     """
     async with httpx.AsyncClient(follow_redirects=True) as client:
 
-        # --- Étape 1 : CountriesNow — infos de base (drapeau, capitale, devise) ---
-        cn_response = await client.get(
+        # --- Étape 1 : CountriesNow — infos de base ---
+        cn_data_raw = await fetch_json_cached(
+            client,
+            "countriesnow_info_detail",
             f"{COUNTRIESNOW_URL}/countries/info",
-            params={"returns": "name,capital,currency,flag,unicodeFlag,dialCode"},
-            timeout=8.0
+            params={"returns": "name,capital,currency,flag,unicodeFlag,dialCode,iso2"},
+            timeout=8.0,
         )
-        cn_response.raise_for_status()
-        cn_data = cn_response.json().get("data", [])
+        cn_data = cn_data_raw.get("data", [])
 
-        # Recherche insensible à la casse
+        # Recherche par code ISO2 ou nom
         cn_country = next(
-            (c for c in cn_data if c.get("name", "").lower() == country_name.lower()),
+            (c for c in cn_data if (c.get("iso2", "").lower() == country_id.lower() or
+                                   c.get("name", "").lower() == country_id.lower())),
             None
         )
+
         if cn_country is None:
-            # Essai avec correspondance partielle
+            # Essai avec correspondance partielle si c'est un nom
             cn_country = next(
-                (c for c in cn_data if country_name.lower() in c.get("name", "").lower()),
+                (c for c in cn_data if country_id.lower() in c.get("name", "").lower()),
                 None
             )
+
         if cn_country is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Pays '{country_name}' introuvable."
-            )
+            raise HTTPException(status_code=404, detail=f"Pays '{country_id}' introuvable.")
 
-        # Nom officiel normalisé depuis CountriesNow
         official_name = cn_country["name"]
+        iso2 = cn_country.get("iso2", "")
 
-        # --- Étape 2 : World Bank — région, sous-région, niveau de revenu ---
-        wb_response = await client.get(
+        # --- Étape 2 : World Bank — données macro-économiques ---
+        # On utilise le code ISO2 pour la Banque Mondiale (plus fiable)
+        wb_id = iso2 if iso2 else official_name
+
+        # Données de base pays
+        wb_countries_raw = await fetch_json_cached(
+            client,
+            "worldbank_countries",
             f"{WORLDBANK_URL}/country",
             params={"format": "json", "per_page": 300},
-            timeout=8.0
+            timeout=8.0,
         )
-        wb_response.raise_for_status()
-        wb_raw = wb_response.json()
-        wb_countries = wb_raw[1] if isinstance(wb_raw, list) and len(wb_raw) > 1 else []
+        wb_countries = wb_countries_raw[1] if isinstance(wb_countries_raw, list) and len(wb_countries_raw) > 1 else []
 
         wb_country = next(
-            (c for c in wb_countries if c.get("name", "").lower() == official_name.lower()),
-            None
+            (c for c in wb_countries if (c.get("id", "").lower() == wb_id.lower() or
+                                        c.get("name", "").lower() == official_name.lower())),
+            {}
         )
-        if wb_country is None:
-            # Essai correspondance partielle
-            wb_country = next(
-                (c for c in wb_countries if official_name.lower() in c.get("name", "").lower()),
-                {}
-            )
 
-        # --- Étape 3 : CountriesNow — population (dernière année disponible) ---
+        # Indicateurs : PIB par habitant et Pénétration Internet
+        gdp_pc = "N/A"
+        internet_users = "N/A"
+
+        if iso2:
+            try:
+                # PIB par habitant (dernier point de données)
+                gdp_raw = await fetch_json_cached(
+                    client,
+                    f"wb_gdp_{iso2}",
+                    f"{WORLDBANK_URL}/country/{iso2}/indicator/NY.GDP.PCAP.CD",
+                    params={"format": "json", "per_page": 5},
+                    timeout=5.0
+                )
+                if isinstance(gdp_raw, list) and len(gdp_raw) > 1 and gdp_raw[1]:
+                    for val in gdp_raw[1]:
+                        if val.get("value") is not None:
+                            gdp_pc = val["value"]
+                            break
+
+                # Pénétration Internet
+                net_raw = await fetch_json_cached(
+                    client,
+                    f"wb_net_{iso2}",
+                    f"{WORLDBANK_URL}/country/{iso2}/indicator/IT.NET.USER.ZS",
+                    params={"format": "json", "per_page": 5},
+                    timeout=5.0
+                )
+                if isinstance(net_raw, list) and len(net_raw) > 1 and net_raw[1]:
+                    for val in net_raw[1]:
+                        if val.get("value") is not None:
+                            internet_users = val["value"]
+                            break
+            except Exception:
+                pass
+
+        # --- Étape 3 : Population ---
         population = 0
         try:
-            pop_response = await client.get(
+            pop_raw = await fetch_json_cached(
+                client,
+                "countriesnow_population",
                 f"{COUNTRIESNOW_URL}/countries/population",
-                timeout=8.0
+                timeout=8.0,
             )
-            pop_response.raise_for_status()
-            pop_data = pop_response.json().get("data", [])
+            pop_data = pop_raw.get("data", [])
             pop_entry = next(
-                (c for c in pop_data if c.get("country", "").lower() == official_name.lower()),
+                (c for c in pop_data if c.get("country", "").lower() == official_name.lower() or
+                                       c.get("iso3", "").lower() == wb_country.get("id", "").lower()),
                 None
             )
             if pop_entry:
                 counts = pop_entry.get("populationCounts", [])
                 if counts:
-                    # Prendre la valeur la plus récente
                     population = sorted(counts, key=lambda x: x["year"])[-1]["value"]
         except Exception:
-            pass  # Population non critique, on continue sans
-
-        # --- Assemblage du dictionnaire normalisé ---
-        region    = wb_country.get("region", {}).get("value", "N/A") if wb_country else "N/A"
-        subregion = wb_country.get("adminregion", {}).get("value", "") if wb_country else ""
-        income    = wb_country.get("incomeLevel", {}).get("value", "N/A") if wb_country else "N/A"
+            pass
 
         return {
-            "name": {
-                "common":   official_name,
-                "official": official_name,
-            },
-            "region":    region,
-            "subregion": subregion if subregion else region,
+            "name": {"common": official_name, "official": official_name},
+            "region": wb_country.get("region", {}).get("value", "N/A") if wb_country else "N/A",
+            "subregion": wb_country.get("adminregion", {}).get("value", "") if wb_country else "",
             "population": population,
-            # ai_service attend {"code": {"name": "Nom langue"}} — on simplifie avec la devise comme proxy
-            "languages":  {},
+            "languages": {},
             "currencies": {
                 cn_country.get("currency", "N/A"): {
-                    "name":   cn_country.get("currency", "N/A"),
+                    "name": cn_country.get("currency", "N/A"),
                     "symbol": cn_country.get("currency", "")
                 }
             },
-            "timezones": [],
             "capital": [cn_country.get("capital", "N/A")],
             "flags": {
                 "emoji": cn_country.get("unicodeFlag", ""),
-                "png":   cn_country.get("flag", ""),
+                "png": cn_country.get("flag", ""),
             },
-            # Champs supplémentaires pour enrichir l'analyse IA
-            "income_level": income,
-            "dial_code":    cn_country.get("dialCode", ""),
+            "income_level": wb_country.get("incomeLevel", {}).get("value", "N/A") if wb_country else "N/A",
+            "gdp_pc": gdp_pc,
+            "internet_users": internet_users,
+            "dial_code": cn_country.get("dialCode", ""),
+            "iso2": iso2
         }
 
 
@@ -168,15 +233,14 @@ async def search_countries(q: str):
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
         try:
-            response = await client.get(
+            payload = await fetch_json_cached(
+                client,
+                "countriesnow_info_search",
                 f"{COUNTRIESNOW_URL}/countries/info",
                 params={"returns": "name,capital,flag,unicodeFlag"},
-                timeout=5.0
+                timeout=5.0,
             )
-            if response.status_code != 200:
-                return []
-
-            countries = response.json().get("data", [])
+            countries = payload.get("data", [])
 
             # Filtrer les pays dont le nom contient la saisie (insensible à la casse)
             query = q.lower()
@@ -191,6 +255,7 @@ async def search_countries(q: str):
                     "name":     m["name"],
                     "official": m["name"],
                     "flag":     m.get("unicodeFlag", ""),
+                    "iso2":     m.get("iso2", ""),
                     "code":     ""
                 }
                 for m in matches[:10]
@@ -204,6 +269,15 @@ async def search_countries(q: str):
 # Reçoit le pays et le type de vente, récupère les données du pays,
 # appelle l'IA et retourne l'analyse complète
 # ---------------------------------------------------------------
+class SalesRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    user_prompt: str = Field(default="", max_length=1000)
+    country_name: str = Field(min_length=1, max_length=100)
+    country_iso2: str | None = Field(default=None, min_length=2, max_length=2)
+    sale_type: str = Field(min_length=1, max_length=200)
+
+
 @app.post("/api/analyze")
 async def analyze_sales(request: SalesRequest):
 
@@ -215,13 +289,16 @@ async def analyze_sales(request: SalesRequest):
 
     # --- Étape 1 : Récupérer les informations détaillées du pays ---
     try:
-        country_info = await fetch_country_info(request.country_name)
+        # On essaie d'utiliser l'ISO2 si fourni pour plus de précision
+        lookup_name = request.country_iso2 if request.country_iso2 else request.country_name
+        country_info = await fetch_country_info(lookup_name)
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
+        logger.exception("Échec de récupération des données pays")
         raise HTTPException(
             status_code=503,
-            detail=f"Erreur lors de la récupération des données pays: {str(e)}"
+            detail="Le service de données pays est temporairement indisponible."
         )
 
     # --- Étape 2 : Appeler le service IA pour l'analyse ---
@@ -232,8 +309,12 @@ async def analyze_sales(request: SalesRequest):
             country_info=country_info,
             sale_type=request.sale_type
         )
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Erreur IA: {str(e)}")
+    except Exception:
+        logger.exception("Échec du service d'analyse IA")
+        raise HTTPException(
+            status_code=503,
+            detail="Le service d'analyse est temporairement indisponible."
+        )
 
     # --- Étape 3 : Construire et retourner la réponse finale ---
     return {
@@ -250,10 +331,33 @@ async def analyze_sales(request: SalesRequest):
                 c.get("name", "")
                 for c in country_info.get("currencies", {}).values()
             ],
+            "income_level": country_info.get("income_level", "N/A"),
+            "gdp_pc": country_info.get("gdp_pc", "N/A"),
+            "internet_users": country_info.get("internet_users", "N/A")
         },
         "sale_type": request.sale_type,
         "analysis":  ai_result
     }
+
+
+# ---------------------------------------------------------------
+# Route POST /api/download-pdf — Génération de PDF
+# Reçoit les données d'analyse et retourne le fichier PDF
+# ---------------------------------------------------------------
+@app.post("/api/download-pdf")
+async def download_pdf(data: dict):
+    try:
+        pdf_content = generate_sales_pdf(data)
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=analyse_{data['country']['name']}.pdf"
+            }
+        )
+    except Exception as e:
+        logger.exception("Échec de génération du PDF")
+        raise HTTPException(status_code=500, detail="Erreur lors de la génération du PDF.")
 
 
 # Point d'entrée pour lancer le serveur directement avec python main.py

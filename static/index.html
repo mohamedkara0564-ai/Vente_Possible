@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sales Advisor — Analyse par pays</title>
   <!-- Feuille de style principale -->
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=pdf-button-3" />
 </head>
 <body>
   <div class="container">
@@ -29,6 +29,10 @@
               type="text"
               id="countryInput"
               placeholder="Saisir ou sélectionner un pays..."
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="countryDropdown"
+              aria-expanded="false"
               required
             />
           </div>
@@ -85,7 +89,10 @@
 
         <!-- Carte des taux de succès et d'échec (cercles SVG animés) -->
         <div class="rates-card">
-          <h3>Taux de succès / échec — <span id="saleTypeLabel"></span></h3>
+          <h3>Estimation indicative — <span id="saleTypeLabel"></span></h3>
+          <p class="rates-disclaimer">
+            Indice généré par l’IA : ce n’est pas une probabilité statistique ni une garantie de résultat.
+          </p>
           <div class="rates-row">
 
             <!-- Cercle SVG : taux de succès (vert) -->
@@ -147,11 +154,30 @@
           <p id="recommendationText"></p>
         </div>
 
+        <!-- Actions supplémentaires -->
+        <div class="actions-row">
+          <div class="pdf-action-group">
+          <button id="downloadPdfBtn" class="btn-pdf" type="button">
+            <span class="pdf-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="23" height="23" focusable="false">
+                <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 16v4h14v-4" />
+              </svg>
+            </span>
+            <span class="pdf-button-copy">
+              <strong id="pdfButtonLabel" aria-live="polite">Télécharger le rapport</strong>
+              <small>Rapport complet au format PDF</small>
+            </span>
+            <span class="pdf-format-badge">PDF</span>
+          </button>
+            <p id="pdfStatus" class="pdf-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
       </section>
     </main>
   </div>
 
   <!-- Script principal de l'interface -->
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=pdf-button-3"></script>
 </body>
 </html>
